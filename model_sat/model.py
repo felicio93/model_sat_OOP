@@ -18,31 +18,6 @@ logging.basicConfig(
 _logger = logging.getLogger()
 
 
-def convert_longitude(lon: Union[float, np.ndarray],
-                      mode: int = 1) -> np.ndarray:
-    """
-    Convert longitudes between common geographic conventions.
-
-    Args:
-        lon: array-like of longitudes
-        mode: conversion mode:
-            - 1: Convert from [-180, 180] to [0, 360] (Greenwich at 0°)
-            - 2: Convert from [0, 360] to [-180, 180] (Greenwich at 0°)
-            - 3: Convert from [-180, 180] to [0, 360] (Greenwich at 180°)
-
-    Returns:
-        np.ndarray of converted longitudes
-    """
-    _logger.debug("Converting longitude with mode %d", mode)
-    lon = np.asarray(lon)
-    if mode == 1:
-        return lon % 360
-    elif mode == 2:
-        return np.where(lon > 180, lon - 360, lon)
-    elif mode == 3:
-        return lon + 180
-    return lon
-
 def natural_sort_key(filename):
     """
     Generates a sorting key that handles numbers correctly.
@@ -62,6 +37,7 @@ class SCHISM:
                  output_subdir: str = "outputs"):
 
         self.rundir = rundir
+        self.model_dict = model_dict
         self.start_date = np.datetime64(start_date)
         self.end_date = np.datetime64(end_date)
         self.output_dir = os.path.join(self.rundir, output_subdir)
@@ -117,7 +93,8 @@ class SCHISM:
                 continue
             # selected.append(os.path.join(self.output_dir, fname))
         if not selected:
-            _logger.warning(f"No files matched pattern in {self.output_dir}")
+            _logger.warning(f"No files matched pattern in {self.output_dir}.\n"
+                            f"Make sure the model files fall within {self.start_date} and {self.end_date} ")
         return selected
 
     def load_variable(self, path: str) -> xr.DataArray:
