@@ -6,9 +6,9 @@ from utils import convert_longitude
 from Collocation.collocate import Collocate
 
 # Paths
-sat_path = r"C:\Users\Felicio.Cassalho\Work\Modeling\AK_Project\WaveCu_paper\allsat.nc"
-model_path = r"C:\Users\Felicio.Cassalho\Work\Modeling\AK_Project\WaveCu_paper\R09b"
-dist_coast_path = r'C:\Users\Felicio.Cassalho\Work\Modeling\AK_Project\WaveCu_paper\WaveTools\gridinfo/distFromCoast.nc'
+sat_path = r"./allsat.nc"
+model_path = r"./R09b"
+dist_coast_path = r'./distFromCoast.nc'
 output_path = "R09b_collocated_3.nc"
 s_time,e_time = "2019-08-01", "2019-08-03"
 # Load data
