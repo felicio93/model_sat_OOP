@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from typing import Union, Optional, List
 from tqdm import tqdm
 
-from Satellite.urls import URL_TEMPLATES
+from .urls import URL_TEMPLATES
 
 
 logging.basicConfig(
