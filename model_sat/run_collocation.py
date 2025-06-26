@@ -11,7 +11,7 @@ from Collocation.collocate import Collocate
 get_sat.get_multi_sat(start_date="2019-07-30",
                       end_date="2019-08-04",
                       sat_list=['sentinel3a','sentinel3b','jason2','jason3','cryosat2','saral'],#swot, sentinel6a,
-                      output_dir=r"C:\Users\Felicio.Cassalho\Work\Modeling\AK_Project\OOP_Model_Sat/sat/",
+                      output_dir=r"C:\Users\Felicio.Cassalho\Work\Modeling\AK_Project\OOP_Model_Sat\sat/",
                       lat_min=49.109,
                       lat_max=66.304309,
                       lon_min=156.6854,
@@ -20,15 +20,15 @@ get_sat.get_multi_sat(start_date="2019-07-30",
 
 
 # Paths
-sat_path = r"C:\Users\Felicio.Cassalho\Work\Modeling\AK_Project\OOP_Model_Sat/sat/multisat_cropped_2019-07-30_2019-08-04.nc"
-model_path = r"C:\Users\Felicio.Cassalho\Work\Modeling\AK_Project\WaveCu_paper\R09b"
+sat_path = r"C:\Users\Felicio.Cassalho\Work\Modeling\AK_Project\OOP_Model_Sat\sat/multisat_cropped_2019-07-30_2019-08-04.nc"
+model_path = r"C:\Users\Felicio.Cassalho\Work\Modeling\AK_Project\WaveCu_paper/R09b"
 dist_coast_path = r'C:\Users\Felicio.Cassalho\Work\Modeling\AK_Project\WaveCu_paper\WaveTools\gridinfo/distFromCoast.nc'
-output_path = "R09b_collocated_53.nc"
+output_path =  r"C:\Users\Felicio.Cassalho\Work\Modeling\AK_Project\OOP_Model_Sat\sat/collocated_01.nc"
 s_time,e_time = "2019-08-01", "2019-08-03"
 
 # Load data (in case you already had downloaded it)
 sat_data = SatelliteData(sat_path)
-
+# Make sure all longitudes match (satellite, model, dist_coast)
 sat_data.lon = convert_longitude(sat_data.lon,mode=1)
 
 model_run = SCHISM(
