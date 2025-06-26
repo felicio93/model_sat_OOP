@@ -4,11 +4,11 @@ import numpy as np
 import xarray as xr
 from tqdm import tqdm
 
-from model import SCHISM
-from satellite import SatelliteData
-from temporal import temporal_nearest, temporal_interpolated
-from spatial import SpatialLocator, inverse_distance_weights
-from output import make_collocated_nc
+from Model.model import SCHISM
+from Satellite.satellite import SatelliteData
+from Collocation.temporal import temporal_nearest, temporal_interpolated
+from Collocation.spatial import SpatialLocator, inverse_distance_weights
+from Collocation.output import make_collocated_nc
 
 logging.basicConfig(
     level=logging.INFO,
@@ -25,7 +25,7 @@ class Collocate:
         satellite: SatelliteData,
         dist_coast: Optional[xr.Dataset] = None,
         n_nearest: int = 3,
-        time_buffer: np.timedelta64 = np.timedelta64(30, "m"),
+        time_buffer: Optional[np.timedelta64] = None,
         weight_power: float = 1.0,
         temporal_interp: bool = False,
     ):
@@ -33,9 +33,22 @@ class Collocate:
         self.sat = satellite
         self.dist_coast = dist_coast["distcoast"] if dist_coast is not None else None
         self.n_nearest = n_nearest
-        self.time_buffer = time_buffer
         self.weight_power = weight_power
         self.temporal_interp = temporal_interp
+        # Automatically estimate time buffer if not provided
+        if time_buffer is None:
+            example_file = self.model.files[0]
+            times = self.model.load_variable(example_file)["time"].values
+
+            if len(times) < 2:
+                raise ValueError("Cannot infer time_buffer: less than two model timesteps.")
+
+            # Calculate timestep and use half of it as buffer
+            timestep = times[1] - times[0]  # Assumes constant step
+            self.time_buffer = timestep / 2
+            _logger.info(f"Inferred time_buffer as half timestep: {self.time_buffer}")
+        else:
+            self.time_buffer = time_buffer
 
         self.locator = SpatialLocator(self.model.mesh_x, self.model.mesh_y)
 
