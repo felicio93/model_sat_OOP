@@ -1,7 +1,7 @@
 import logging
 import os
 import re
-from typing import List, Union
+from typing import List, Tuple, Union
 
 import numpy as np
 import xarray as xr
@@ -17,22 +17,41 @@ logging.basicConfig(
 _logger = logging.getLogger()
 
 
-def natural_sort_key(filename):
+def natural_sort_key(filename: str) -> List[Union[int, str]]:
     """
-    Generates a sorting key that handles numbers correctly.
+    Generate a key for natural sorting of filenames (e.g., file10 comes after file2).
+
+    Parameters
+    ----------
+    filename : str
+        Filename to generate sorting key for
+
+    Returns
+    -------
+    List[Union[int, str]]
+        List of numeric and string parts to be used for sorting
     """
     return [int(part) if part.isdigit() else part.lower()
             for part in re.split(r'(\d+)', filename)]
 
-def _parse_gr3_mesh(filepath: str):
+def _parse_gr3_mesh(filepath: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Parse a SCHISM hgrid.gr3 mesh file to extract lon, lat, and depth arrays.
+    Parse a SCHISM hgrid.gr3 mesh file to extract node coordinates and depth.
 
-    Parameters:
-        filepath (str): Path to hgrid.gr3 file.
+    Parameters
+    ----------
+    filepath : str
+        Path to the hgrid.gr3 mesh file
 
-    Returns:
-        Tuple of np.ndarray: (lon, lat, depth)
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray, np.ndarray]
+        Tuple of (lon, lat, depth) arrays for each mesh node
+
+    Notes
+    -----
+    Assumes the hgrid.gr3 file contains node-based data with the expected format.
+    This was added so we don't need OCSMesh as a requirement anymore.
     """
     with open(filepath, 'r') as f:
         _ = f.readline()  # mesh name
@@ -53,14 +72,45 @@ def _parse_gr3_mesh(filepath: str):
 
 class SCHISM:
     """
-    Encapsulates selecting and loading model files.
+    SCHISM model interface
+
+    Handles selection, filtering, and loading of model outputs from a SCHISM run directory.
+    Also parses the model mesh (hgrid.gr3) for spatial queries.
+    This assumes a run directory structure where:
+    .
+    ├── RunDir
+        ├── hgrid.gr3
+        ├── ...
+        ├── outputs
+            ├── out2d_*.nc
+            └── *.nc
+
+    Methods
+    -------
+    load_variable(path)
+        Load model variable from a NetCDF file and extract surface layer if 3D
     """
     def __init__(self, rundir: str,
                  model_dict: dict,
                  start_date: np.datetime64,
                  end_date: np.datetime64,
                  output_subdir: str = "outputs"):
+        """
+        Initialize a SCHISM model run
 
+        Parameters
+        ----------
+        rundir : str
+            Path to the SCHISM model run directory
+        model_dict : dict
+            Dictionary with keys: 'startswith', 'var', 'var_type'
+        start_date : np.datetime64
+            Start of the time range for selecting model files
+        end_date : np.datetime64
+            End of the time range for selecting model files
+        output_subdir : str, optional
+            Name of the subdirectory containing output NetCDF files (default: "outputs")
+        """
         self.rundir = rundir
         self.model_dict = model_dict
         self.start_date = np.datetime64(start_date)
@@ -73,9 +123,14 @@ class SCHISM:
         self._mesh_path = os.path.join(self.rundir, 'hgrid.gr3')
         self._mesh_x, self._mesh_y, self._mesh_depth = _parse_gr3_mesh(self._mesh_path)
 
-    def _validate_model_dict(self):
+    def _validate_model_dict(self) -> None:
         """
-        Ensure the model_dict has the necessary keys.
+        Ensure the model_dict contains all required keys.
+
+        Raises
+        ------
+        ValueError
+            If required keys are missing from model_dict
         """
         required_keys = ['startswith', 'var', 'var_type']
         missing = [k for k in required_keys if k not in self.model_dict]
@@ -84,7 +139,17 @@ class SCHISM:
 
     def _select_model_files(self) -> List[str]:
         """
-        Select model output NetCDF files filtered by filename pattern.
+        Select NetCDF output files within the specified time range.
+
+        Returns
+        -------
+        List[str]
+            List of file paths to model outputs that overlap with the requested time window
+
+        Notes
+        -----
+        Only files that contain a 'time' variable and overlap the specified time window are selected.
+        Time decoding is limited to the 'time' variable for performance and robustness.
         """
         if not os.path.isdir(self.output_dir):
             _logger.warning(f"Output directory {self.output_dir} does not exist.")
@@ -120,7 +185,21 @@ class SCHISM:
 
     def load_variable(self, path: str) -> xr.DataArray:
         """
-        Load the variable from a NetCDF file, slicing 3D data if needed.
+        Load the specified variable from a model NetCDF file.
+
+        Parameters
+        ----------
+        path : str
+            Path to the NetCDF file to open
+
+        Returns
+        -------
+        xr.DataArray
+            The requested variable, surface-only if 3D
+
+        Notes
+        -----
+        For 3D variables, this method extracts the surface layer (last index of vertical layers).
         """
         _logger.info("Opening model file: %s", path)
         with xr.open_dataset(path) as ds:

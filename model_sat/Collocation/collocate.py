@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple, Union
 import logging
 import numpy as np
 import xarray as xr
@@ -19,16 +19,56 @@ _logger = logging.getLogger(__name__)
 
 
 class Collocate:
-    def __init__(
-        self,
-        model_run: SCHISM,
-        satellite: SatelliteData,
-        dist_coast: Optional[xr.Dataset] = None,
-        n_nearest: int = 3,
-        time_buffer: Optional[np.timedelta64] = None,
-        weight_power: float = 1.0,
-        temporal_interp: bool = False,
-    ):
+    """Model–satellite collocation engine
+
+    This is the mains class. 
+    It handles the spatial and temporal collocation of satellite
+    altimetry data (e.g., significant wave height, sea level anomaly (TBD))
+    with unstructured model outputs (e.g., SCHISM). It supports both
+    nearest-neighbor (in time) and temporally interpolated collocation strategies.
+
+    Methods
+    -------
+    run(output_path=None)
+        Run the collocation over all model files and return a combined
+        xarray.Dataset.
+
+    Notes
+    -----
+    Collocation is performed using:
+    - Nearest N spatial nodes (with inverse distance weighting)
+    - Nearest or interpolated temporal matching
+    - Optional distance-to-coast dataset for filtering/post-processing
+
+    Automatically infers time_buffer from model time step if not provided.
+    """
+    def __init__(self,
+                 model_run: SCHISM,
+                 satellite: SatelliteData,
+                 dist_coast: Optional[xr.Dataset] = None,
+                 n_nearest: int = 3,
+                 time_buffer: Optional[np.timedelta64] = None,
+                 weight_power: float = 1.0,
+                 temporal_interp: bool = False,
+                 ) -> None:
+        """
+        Parameters
+        ----------
+        model_run : SCHISM
+            Model object containing grid, file paths, and data access
+        satellite : SatelliteData
+            Satellite data wrapper providing SWH, SLA, etc.
+        dist_coast : xarray.Dataset, optional
+            Optional dataset containing distance-to-coast info
+        n_nearest : int, default=3
+            Number of nearest spatial model nodes to use
+        time_buffer : np.timedelta64, optional
+            Temporal search buffer; if None, inferred from model timestep
+        weight_power : float, default=1.0
+            Power exponent for inverse distance weighting
+        temporal_interp : bool, default=False
+            Whether to perform linear temporal interpolation
+        """
         self.model = model_run
         self.sat = satellite
         self.dist_coast = dist_coast["distcoast"] if dist_coast is not None else None
@@ -52,7 +92,27 @@ class Collocate:
 
         self.locator = SpatialLocator(self.model.mesh_x, self.model.mesh_y)
 
-    def _extract_model_values(self, m_var, times_or_inds, nodes):
+    def _extract_model_values(self,
+                              m_var: xr.DataArray,
+                              times_or_inds: Union[np.ndarray, Tuple[np.ndarray, np.ndarray, np.ndarray]],
+                              nodes: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Extract model variable values and corresponding depths at given times and nodes.
+
+        Parameters
+        ----------
+        m_var : xarray.DataArray
+            Model variable to extract from (e.g. significant wave height)
+        times_or_inds : tuple or list
+            Time indices or interpolation args (ib, ia, wts)
+        nodes : np.ndarray
+            Node indices of nearest spatial neighbors
+
+        Returns
+        -------
+        Tuple[np.ndarray, np.ndarray]
+            Extracted model values and node depths
+        """
         model_data = m_var.values
         depths = self.model.mesh_depth
 
@@ -73,7 +133,24 @@ class Collocate:
 
         return np.array(values), np.array(dpts)
 
-    def _coast_distance(self, lats, lons):
+    def _coast_distance(self,
+                        lats: np.ndarray,
+                        lons: np.ndarray) -> np.ndarray:
+        """
+        Get distance to coast for given lat/lon points using optional dataset.
+
+        Parameters
+        ----------
+        lats : array-like
+            Latitudes of satellite observations
+        lons : array-like
+            Longitudes of satellite observations
+
+        Returns
+        -------
+        np.ndarray
+            Interpolated coastal distances, or NaNs if unavailable
+        """
         if self.dist_coast is None:
             return np.full_like(lats, fill_value=np.nan, dtype=float)
         return self.dist_coast.sel(
@@ -82,7 +159,21 @@ class Collocate:
             method="nearest",
         ).values
 
-    def run(self, output_path: Optional[str] = None) -> xr.Dataset:
+    def run(self,
+            output_path: Optional[str] = None) -> xr.Dataset:
+        """
+        Run full model–satellite collocation process over all model files.
+
+        Parameters
+        ----------
+        output_path : str, optional
+            If provided, writes collocated output to NetCDF file
+
+        Returns
+        -------
+        xarray.Dataset
+            Dataset containing collocated satellite and model data
+        """
         results = {k: [] for k in [
             "time_sat", "lat_sat", "lon_sat", "source_sat",
             "sat_swh", "sat_sla", "model_swh", "model_dpt",

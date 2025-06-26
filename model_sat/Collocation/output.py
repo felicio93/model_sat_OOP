@@ -2,7 +2,8 @@ import xarray as xr
 import numpy as np
 
 
-def make_collocated_nc(results: dict, n_nearest: int) -> xr.Dataset:
+def make_collocated_nc(results: dict,
+                       n_nearest: int) -> xr.Dataset:
     data_vars = {
         "lon": (["time"], np.concatenate(results["lon_sat"])),
         "lat": (["time"], np.concatenate(results["lat_sat"])),

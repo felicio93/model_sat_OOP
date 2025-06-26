@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from typing import Union, Optional, List
 from tqdm import tqdm
 
-from urls import URL_TEMPLATES
+from Satellite.urls import URL_TEMPLATES
 
 
 logging.basicConfig(
@@ -56,14 +56,16 @@ def download_sat_data(dates_str: List[str],
     """
     This function downloads the satellite data
 
-    Args:
+    Parameters
+    ----------
         dates_str: List with all the dates data will be downloaded for
         url_template: from urls.py
         raw_dir: path to where the raw sat data will be saved
         retries: how many times will it try to download the data
         delay: how long will it wait to try the download again
 
-    Returns:
+    Returns
+    -------
         List of paths to the downlaoded satellite files.
     """
     os.makedirs(raw_dir, exist_ok=True)
@@ -105,14 +107,18 @@ def crop_by_box(dataset: xr.Dataset,
     """
     Crops xarray data based on lats and lons
 
-    Args:
+    Parameters
+    ----------
         lat_min: float/int of mininum latitude
         lat_max: float/int of maximum latitude
         lon_min: float/int of mininum longitude
         lon_max: float/int of maximum latitude
-    Returns:
+    Returns
+    -------
         xarray object of the cropped data
-    Note:
+
+    Notes
+    -----
         Satellite data uses the -180 to 180 standard
         If you want to cross the meridian, then pass a lon_min > lon_max
         
@@ -147,16 +153,21 @@ def crop_sat_data(file_paths: List[str],
     Handles the satellite data cropping
     Crops and saves all the satellite data
 
-    Args:
+    Parameters
+    ----------
         lat_min: float/int of mininum latitude
         lat_max: float/int of maximum latitude
         lon_min: float/int of mininum longitude
         lon_max: float/int of maximum latitude
-    Returns:
+
+    Returns
+    -------
         xarray object of the cropped data
-    Note:
+
+    Notes
+    -----
         Satellite data uses the -180 to 180 standard
-        If you want to cross the meridian, then pass a lon_min > lon_max
+        If you want to change the longitudes, use util.convert_longitude(sat_data.lon,mode=?)
     """
     os.makedirs(cropped_dir, exist_ok=True)
     cropped_datasets = []
@@ -190,14 +201,15 @@ def concat_sat_data(datasets: List[xr.Dataset],
     Handles the satellite data concatenation
     Concat and saves all the satellite data on the datasets list
 
-    Args:
+    Parameters
+    ----------
         datasets: List xr satellite data to be concatenated
         output_path: path to where the concatenated data will be saved
         sat: name of the satellite
-    Returns:
-        xarray object of the concatenated data
-    Note:
 
+    Returns
+    ----------
+        xarray object of the concatenated data
     """
     if not datasets:
         _logger.warning("No datasets to concatenate.")
@@ -229,7 +241,8 @@ def get_per_sat(start_date: str,
     """
     Download, crop, and optionally concatenate satellite data.
 
-    Args:
+    Parameters
+    ----------
         start_date: Start date in 'YYYY-MM-DD'
         end_date: End date in 'YYYY-MM-DD'
         sat: Satellite key for URL_TEMPLATES
@@ -239,7 +252,8 @@ def get_per_sat(start_date: str,
         clean_raw: Delete raw files after processing
         clean_cropped: Delete cropped files after processing
 
-    Returns:
+    Returns
+    ----------
         xarray.Dataset if concatenated, otherwise None
     """
     try:
@@ -300,12 +314,13 @@ def get_multi_sat(start_date: str,
          lon_min: Optional[float] = None,
          lon_max: Optional[float] = None,
          concat: bool = True,
-         clean_raw: bool = False,
-         clean_cropped: bool = False) -> Optional[xr.Dataset]:
+         clean_raw: bool = True,
+         clean_cropped: bool = True) -> Optional[xr.Dataset]:
     """
     Run download and processing for multiple satellites.
 
-    Args:
+    Parameters
+    ----------
         start_date: Start date in 'YYYY-MM-DD'
         end_date: End date in 'YYYY-MM-DD'
         sat: Satellite key for URL_TEMPLATES
@@ -314,7 +329,8 @@ def get_multi_sat(start_date: str,
         concat: Save a single concatenated output
         clean_raw: Delete raw files after processing
 
-    Returns:
+    Returns
+    ----------
         xarray.Dataset if concatenated, otherwise None
     """
 
@@ -351,22 +367,3 @@ def get_multi_sat(start_date: str,
 
     return None
 
-if __name__ == "__main__":
-
-    # Testing (Felicio):
-    def hercules_R09b():
-        get_multi_sat(
-                    start_date="2019-07-01",
-                    end_date="2019-11-15",
-                    sat_list=['sentinel3a','sentinel3b','jason2','jason3','cryosat2','saral'],
-                    output_dir=r"/work2/noaa/nos-surge/felicioc/BeringSea/P09/sat_val/",
-                    lat_min=49.109,
-                    lat_max=66.304309,
-                    lon_min=156.6854,
-                    lon_max=-156.864,
-                    concat=True,
-                    clean_raw=False,
-                    clean_cropped=False
-                    ) 
-
-    hercules_R09b()

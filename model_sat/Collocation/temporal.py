@@ -7,19 +7,26 @@ def temporal_nearest(ds_sat: xr.Dataset,
                      buffer: np.timedelta64
                      ) -> tuple[xr.Dataset, np.ndarray, np.ndarray]:
     """
-    Matches each satellite observation to the nearest model time.
+    Match satellite observations to the nearest model timestamps.
 
-    Args:
-        ds_sat (xr.Dataset): Satellite dataset with a 'time' dimension.
-        model_times (np.ndarray): Array of model timestamps (datetime64).
-        buffer (np.timedelta64): Time buffer for selecting satellite observations
-                                 around the model time window.
+    Parameters
+    ----------
+    ds_sat : xr.Dataset
+        Satellite dataset with a 'time' dimension
+    model_times : np.ndarray
+        Array of model time values (np.datetime64)
+    buffer : np.timedelta64
+        Time buffer to include satellite points near the model time window
 
-    Returns:
-        tuple:
-            - sat_sub (xr.Dataset): Subset of satellite data within the buffered time range.
-            - nearest_inds (np.ndarray): Indices of closest model time for each satellite time.
-            - time_deltas (np.ndarray): Time difference (in seconds) between matched model and satellite times.
+    Returns
+    -------
+    tuple
+        sat_sub : xr.Dataset
+            Subset of satellite data within the buffered time range
+        nearest_inds : np.ndarray
+            Index of nearest model time for each satellite time
+        time_deltas : np.ndarray
+            Difference (in seconds) between satellite and matched model time
     """
     start = model_times.min() - buffer
     end = model_times.max() + buffer
@@ -38,21 +45,30 @@ def temporal_interpolated(ds_sat: xr.Dataset,
                           buffer: np.timedelta64
                           ) -> tuple[xr.Dataset, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
-    Performs linear time interpolation between two model times surrounding each satellite time.
+    Perform linear time interpolation using surrounding model timestamps.
 
-    Args:
-        ds_sat (xr.Dataset): Satellite dataset with a 'time' dimension.
-        model_times (np.ndarray): Array of model timestamps (datetime64).
-        buffer (np.timedelta64): Time buffer for selecting satellite observations
-                                 around the model time window.
+    Parameters
+    ----------
+    ds_sat : xr.Dataset
+        Satellite dataset with a 'time' dimension
+    model_times : np.ndarray
+        Array of model time values (np.datetime64)
+    buffer : np.timedelta64
+        Time buffer to include satellite points near the model time window
 
-    Returns:
-        tuple:
-            - sat_sub (xr.Dataset): Subset of satellite data used in interpolation.
-            - ib (np.ndarray): Indices of earlier model time for each satellite point.
-            - ia (np.ndarray): Indices of later model time for each satellite point.
-            - weights (np.ndarray): Linear weights for interpolating between ib and ia.
-            - time_deltas (np.ndarray): Time difference (in seconds) between satellite and closest model time.
+    Returns
+    -------
+    tuple
+        sat_sub : xr.Dataset
+            Subset of satellite data used in interpolation
+        ib : np.ndarray
+            Index of earlier model time
+        ia : np.ndarray
+            Index of later model time
+        weights : np.ndarray
+            Linear interpolation weights for each satellite point
+        time_deltas : np.ndarray
+            Difference (in seconds) between satellite and closest model time
     """
     start = model_times.min() - buffer
     end = model_times.max() + buffer
