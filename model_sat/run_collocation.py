@@ -7,23 +7,23 @@ from utils import convert_longitude
 from Collocation.collocate import Collocate
 
 
-# Download the Satellite data
-get_sat.get_multi_sat(start_date="2019-07-30",
-                      end_date="2019-08-04",
-                      sat_list=['sentinel3a','sentinel3b','jason2','jason3','cryosat2','saral'],#swot, sentinel6a,
-                      output_dir=r"C:\Users\Felicio.Cassalho\Work\Modeling\AK_Project\OOP_Model_Sat\sat/",
-                      lat_min=49.109,
-                      lat_max=66.304309,
-                      lon_min=156.6854,
-                      lon_max=-156.864,
-                      ) 
+# # Download the Satellite data
+# get_sat.get_multi_sat(start_date="2019-07-30",
+#                 end_date="2019-08-04",
+#                 sat_list=['sentinel3a','sentinel3b','jason2','jason3','cryosat2','saral'],#swot, sentinel6a,
+#                 output_dir=r"C:\Users\Felicio.Cassalho\Work\Modeling\AK_Project\OOP_Model_Sat\sat/",
+#                 lat_min=49.109,
+#                 lat_max=66.304309,
+#                 lon_min=156.6854,
+#                 lon_max=-156.864,
+#                 ) 
 
 
 # Paths
 sat_path = r"C:\Users\Felicio.Cassalho\Work\Modeling\AK_Project\OOP_Model_Sat\sat/multisat_cropped_2019-07-30_2019-08-04.nc"
 model_path = r"C:\Users\Felicio.Cassalho\Work\Modeling\AK_Project\WaveCu_paper/R09b"
 dist_coast_path = r'C:\Users\Felicio.Cassalho\Work\Modeling\AK_Project\WaveCu_paper\WaveTools\gridinfo/distFromCoast.nc'
-output_path =  r"C:\Users\Felicio.Cassalho\Work\Modeling\AK_Project\OOP_Model_Sat\sat/collocated_01.nc"
+output_path =  r"C:\Users\Felicio.Cassalho\Work\Modeling\AK_Project\OOP_Model_Sat\sat/collocated_radius3km2.nc"#collocated_radius3km.nc"#collocated_nearest3.nc
 s_time,e_time = "2019-08-01", "2019-08-03"
 
 # Load data (in case you already had downloaded it)
@@ -48,7 +48,8 @@ coll = Collocate(
     model_run=model_run,
     satellite=sat_data,
     dist_coast=dist_coast,
-    n_nearest=3,
+    # n_nearest=4,
+    search_radius = 3000,
     # time_buffer=np.timedelta64(30, "m"),
     weight_power=1.0,
     temporal_interp=True  # or True if you want interpolated matching
